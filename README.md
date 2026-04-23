@@ -45,7 +45,8 @@
 pip install numpy matplotlib pillow
 
 # Запуск
-python video_over_5g.py```
+python video_over_5g.py
+```
 
 ## Автор
 
