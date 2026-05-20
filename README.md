@@ -29,9 +29,10 @@
 cd image_transmission
 pip install numpy matplotlib pillow
 python image_transmission.py
-
+```
 ### Передача видео
 ```bash
 cd video_transmission
 pip install numpy matplotlib pillow opencv-python
 python video_transmission.py
+```
