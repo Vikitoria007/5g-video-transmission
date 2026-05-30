@@ -267,6 +267,64 @@ if __name__ == "__main__":
         plt.savefig(f"frame_comparison_{i+1}.png")
         plt.close()
     print(f"сохранено {num_comparisons} покадровых сравнений")
+    print("восстановленное видео сохранено как recovered_kitten.avi")
     
     print ("\n программма завершена")
+
+    print("демонстрация передачи видео в реальном времени")
+    print("нажмите + для увеличения snr (лучше качество)")
+    print("нажмите - для уменьшения SNR (больше шума)")
+    print("нажмите q для выхода\n")
+
+    cap_live = cv2.VideoCapture("kitten.mp4")
+    snr_live = 20
+    frame_count = 0
+
+    while True:
+        ret, frame = cap_live.read()
+        if not ret:
+            cap_live.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            continue 
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        small = cv2.resize(gray, (64, 64))
+        compressed = compress_quantize(small, levels=4)
+
+        bits, shape = frame_to_bits(compressed)
+        qpsk_sym = qpsk_modulate(bits)
+        ofdm_sig = ofdm_modulate(qpsk_sym)
+        rx_sig = add_awgn_noise(ofdm_sig, snr_live)
+        rx_sym = ofdm_demodulate(rx_sig)
+        rx_sym = rx_sym[:len(qpsk_sym)]
+        bits_rec = qpsk_demodulate(rx_sym)
+        bits_rec = bits_rec[:len(bits)]
+        recovered = bits_to_frame(bits_rec, shape)
+
+        small = small.astype(np.uint8)
+        recovered = recovered.astype(np.uint8)
+
+        display = np.hstack([small, recovered])
+        display = cv2.resize(display, (512, 256))
+
+        cv2.putText(display, f"SNR = {snr_live} dB", (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+        cv2.putText(display, "Original (left) / received (right)", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (200, 200, 200), 1)
+
+        cv2.imshow("Live 5G transmission (press + / - / q)", display)
+
+        key = cv2.waitKey(30) & 0xFF
+        if key == ord('q'):
+            break 
+        elif key == ord('+'):
+            snr_live = min(snr_live + 5, 40) 
+            print(f"SNR = {snr_live} dB (качество улучшается)")
+        elif key == ord("-"):
+            snr_live = max(snr_live - 5, 0)
+            print(f"SNR = {snr_live} dB (шума становится больше)")
+        
+        frame_count += 1
+
+    cap_live.release()
+    cv2.destroyAllWindows()
+    print("\n Демонстрация завершена")
+
     plt.show()
